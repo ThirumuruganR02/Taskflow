@@ -26,37 +26,42 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
 
     public AuthResponse signup(SignupRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists!");
-        }
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists!");
-        }
+        validateSignupRequest(request);
+
         User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
+                .username(request.getUsername().trim())
+                .email(request.getEmail().trim().toLowerCase())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .build();
-        userRepository.save(user);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+
+        User savedUser = userRepository.save(user);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
         String token = jwtUtil.generateToken(userDetails);
+
         return AuthResponse.builder()
                 .token(token)
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(user.getRole().name())
+                .username(savedUser.getUsername())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole().name())
                 .message("User registered successfully!")
                 .build();
     }
 
     public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        User user = userRepository.findByEmail(request.getEmail())
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
+        );
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found!"));
+
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
+
         return AuthResponse.builder()
                 .token(token)
                 .username(user.getUsername())
@@ -64,5 +69,35 @@ public class AuthService {
                 .role(user.getRole().name())
                 .message("Login successful!")
                 .build();
+    }
+
+    private void validateSignupRequest(SignupRequest request) {
+        String username = request.getUsername() == null ? "" : request.getUsername().trim();
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+        String password = request.getPassword() == null ? "" : request.getPassword();
+
+        if (username.isBlank()) {
+            throw new RuntimeException("Username is required!");
+        }
+
+        if (email.isBlank()) {
+            throw new RuntimeException("Email is required!");
+        }
+
+        if (password.isBlank()) {
+            throw new RuntimeException("Password is required!");
+        }
+
+        if (password.length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters long!");
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists!");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new RuntimeException("Username already exists!");
+        }
     }
 }

@@ -3,6 +3,7 @@ export const USER_KEY = "taskflow_user";
 
 export function saveAuth(authResponse) {
   localStorage.setItem(TOKEN_KEY, authResponse.token);
+
   localStorage.setItem(
     USER_KEY,
     JSON.stringify({

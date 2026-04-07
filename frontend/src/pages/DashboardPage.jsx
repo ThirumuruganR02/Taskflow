@@ -32,13 +32,19 @@ export default function DashboardPage() {
     fetchTasks();
   }, []);
 
+  // 🔥 FIXED DATE FORMAT HERE
+  const formatDateTime = (date) => {
+    if (!date) return null;
+    return date.length === 10 ? `${date}T00:00:00` : date;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     const payload = {
       ...form,
-      dueDate: form.dueDate || null,
+      dueDate: formatDateTime(form.dueDate),
     };
 
     try {
@@ -51,6 +57,7 @@ export default function DashboardPage() {
       setEditingId(null);
       fetchTasks();
     } catch (err) {
+      console.error(err);
       setError("Unable to save task.");
     } finally {
       setLoading(false);
@@ -59,12 +66,19 @@ export default function DashboardPage() {
 
   const handleEdit = (task) => {
     setEditingId(task.id);
+
+    // 🔥 FIX DATE FORMAT FOR INPUT
+    const formattedDate = task.dueDate
+      ? task.dueDate.substring(0, 10)
+      : "";
+
     setForm({
       title: task.title || "",
       description: task.description || "",
       status: task.status || "PENDING",
-      dueDate: task.dueDate || "",
+      dueDate: formattedDate,
     });
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -129,10 +143,10 @@ export default function DashboardPage() {
       </section>
 
       <section className="stats-grid">
-        <StatCard label="Total Tasks" value={stats.total} accent="blue" />
-        <StatCard label="Pending" value={stats.pending} accent="amber" />
-        <StatCard label="In Progress" value={stats.progress} accent="violet" />
-        <StatCard label="Completed" value={stats.completed} accent="green" />
+        <StatCard label="Total Tasks" value={stats.total} />
+        <StatCard label="Pending" value={stats.pending} />
+        <StatCard label="In Progress" value={stats.progress} />
+        <StatCard label="Completed" value={stats.completed} />
       </section>
 
       {error && <div className="alert error">{error}</div>}
